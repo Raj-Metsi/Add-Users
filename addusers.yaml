@@ -1,0 +1,42 @@
+---
+
+- hosts: metsi
+  become: true
+  remote_user: root
+  vars:
+    users:
+      - username: rajm
+        realname: Raj Martha
+        uniqueid: 635
+        passhash: '$6$W70GI.gF$LNzOmyVEokI2MWekQrZ0EvuAIJS6z0SmvBXvZ6AOVJaC2RUSpgSqnM43TAE3R4NAUo1cSkbWy2NgtlkyDBJIm.'
+  tasks:
+    - name: Create wsgroup group
+      group:
+        name: wsgroup
+        gid: 11058
+        state: present
+    - name: Add or update wsadmin account
+      user:
+        name: wsadmin
+        uid: 505
+        comment: WebSphere Admin
+        group: wsgroup
+        state: present
+    - name: Configure wsadmin ulimits
+      copy:
+        src: "./wsadmin.conf"
+        dest: /etc/security/limits.d/wsadmin.conf
+        owner: root
+        group: root
+        mode: 0644
+    - name: Add or update Linux user/admin accounts
+      user:
+        name: "{{ item.username }}"
+        uid: "{{ item.uniqueid }}"
+        comment: "{{ item.realname }}"
+        state: present
+        update_password: on_create
+        # set password to: the user's password hash if the user didn't already exist
+        password: "{{ item.passhash }}"
+        groups: wheel
+      with_items:
